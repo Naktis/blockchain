@@ -19,10 +19,8 @@ class Transaction {
             std::stringstream fieldValues;
             fieldValues << senderKey << receiverKey << amount;
             ID = hash(fieldValues.str());
-            std::cout << fieldValues.str() << " " << ID << "\n";
         }
 
-    private:
         std::string ID; // hash of other field values
         std::string senderKey;
         std::string receiverKey;
