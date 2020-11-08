@@ -43,7 +43,7 @@ void generateUsers() {
         out << name << " " << hash(sstream.str()) << " " << randBalance(mt) << "\n";
     }
     out.close();
-    std::cout << "\nusers.txt file has been generated";
+    std::cout << "\nusers.txt file has been generated\n";
 }
 
 void generateTransactions() {
@@ -99,10 +99,10 @@ void generateTransactions() {
         out << T.ID << " " << T.senderKey << " " << T.receiverKey << " " << T.amount << "\n";
     }
     out.close();
-    std::cout << "\ntransactions.txt file has been generated";
+    std::cout << "\ntransactions.txt file has been generated\n";
 }
 
-std::vector<Transaction> getTransactions(int n, int round) {
+std::vector<Transaction> getTransactions(int n) {
     std::vector<Transaction> trans;
     Transaction temp;
     std::ifstream in ("transactions.txt");
@@ -135,9 +135,7 @@ std::vector<Transaction> getTransactions(int n, int round) {
         selected.push_back(trans[index]);
     }
 
-    std::ostringstream name;
-    name << "transactions" << round << ".txt";
-    std::ofstream out (name.str());
+    std::ofstream out ("transactions.txt");
 
     for (int i = 0; i < trans.size(); i ++) {
         alreadyUsed = false;
@@ -155,65 +153,113 @@ std::vector<Transaction> getTransactions(int n, int round) {
     return selected;
 } 
 
-Block genesis(std::vector<Transaction> trans) {
+void executeTransactions() {
+    std::vector<User> users;
+    User tempU;
+    std::ifstream inu ("users.txt");
+    while (inu >> tempU.name) {
+        inu >> tempU.publicKey >> tempU.balance;
+        users.push_back(tempU);
+    }
+    inu.close();
+
+    Transaction tempT;
+    std::ifstream in ("transactions.txt");
+    while (in >> tempT.ID) {
+        in >> tempT.senderKey >> tempT.receiverKey >> tempT.amount;
+
+        int senderIndex = 0;
+        while(tempT.senderKey != users[senderIndex].publicKey)
+            senderIndex ++;
+
+        int receiverIndex = 0;
+        while(tempT.receiverKey != users[receiverIndex].publicKey)
+            receiverIndex ++;
+
+        users[receiverIndex].balance += tempT.amount;
+        users[senderIndex].balance -= tempT.amount;
+    }
+    in.close();
+
+    std::ofstream out ("users.txt");
+    for (int i = 0; i < users.size(); i ++) {
+        out << users[i].name << " " << users[i].publicKey << " " << users[i].balance << "\n";
+    }
+    out.close();
+}
+
+Block newBlock(std::vector<Transaction> trans) {
     int nonce = 0;
     Block b("", trans);
     while (!b.isNonceValid(nonce)) {
         nonce++;
     }
+    executeTransactions();
     return b;
 }
 
-Block mine(Block previous, std::vector<Transaction> trans) {
+Block newBlock(Block previous, std::vector<Transaction> trans) {
     int nonce = 0;
     Block b(previous.HeaderHash(), trans);
     while (!b.isNonceValid(nonce)) {
         nonce++;
-    //std::cout << genesis.HeaderHash().substr(0,2) << " ";
     }
+    executeTransactions();
     return b;
 }
 
-int main() {
-    std::vector<Block> chain;
-    std::vector<Transaction> trans1 = getTransactions(100, 1);
-    chain.push_back(genesis(trans1));
-    
-    std::cout << chain[0].HeaderHash() << "\n";
-    std::vector<Transaction> trans2 = getTransactions(100, 2);
-    chain.push_back(mine(chain[0], trans2));
-    std::cout << chain[1].HeaderHash();
-    /*
-    std::cout << "Enter the function number:\n"
-              << "1 - User generation\n"
-              << "2 - Transaction\n";
+void createWholeChain() {
+    int blockCount, transCount;
+    std::cout << "Block count: ";
+    std::cin >> blockCount;
+    std::cout << "Transactions in a block count: ";
+    std::cin >> transCount;
 
-    int fun;
-    std::cin >> fun;
-    switch (fun) {
-        case 1: 
-            generateUsers();
-            break;
-        case 2: 
-            generateTransactions();
-            break;
-        default:
-            std::cout << "Invalid input";
-    }*/
-    /*
-    std::list<Transaction> genTrans;
-    Transaction genTrans1("abc", "zxc", 10);
-    Transaction genTrans2("abc", "zxc", 10);
-    genTrans.push_back(genTrans1);
-    genTrans.push_back(genTrans2);
-    int nonce = 0;
-    Block genesis("", genTrans);
-    while (!genesis.isNonceValid(nonce)) {
-        nonce++;
-        //std::cout << genesis.HeaderHash().substr(0,2) << " ";
+    std::vector<Block> chain;
+    std::ofstream out ("block_hashes.txt");
+
+    // genesis block
+    std::vector<Transaction> body = getTransactions(transCount);
+    chain.push_back(newBlock(body));
+    out << chain[0].HeaderHash() << "\n";
+
+    // other blocks
+    for (int i = 1; i < blockCount; i ++) {
+        body = getTransactions(transCount);
+        chain.push_back(newBlock(chain[i-1], body));
+        out << chain[i].HeaderHash() << "\n";
     }
-    std::cout << genesis.HeaderHash();
-    */
+    out.close();
+
+    std::cout << "\nBlocks' hashes have been saved to block_hashes.txt\n\n";
+}
+
+int main() {
+    int fun;
+    do {
+        std::cout << "\nEnter the function number:\n"
+              << "1 - User generation\n"
+              << "2 - Transaction generation\n"
+              << "3 - Blockchain mining\n"
+              << "0 - Exit\n";
+    
+        std::cin >> fun;
+        switch (fun) {
+            case 1: 
+                generateUsers();
+                break;
+            case 2: 
+                generateTransactions();
+                break;
+            case 3: 
+                createWholeChain();
+                break;
+            case 0: 
+                break;
+            default:
+                std::cout << "Invalid input";
+        }
+    } while (fun != 0);
 }
 
 // g++ -c blockchain.cpp hash.cpp
