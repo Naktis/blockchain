@@ -11,6 +11,7 @@ class User {
 
 class Transaction {
     public:
+        Transaction() {}
         Transaction(std::string senderKey, std::string receiverKey, double amount) {
             this->senderKey = senderKey;
             this->receiverKey = receiverKey;

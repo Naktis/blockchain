@@ -47,25 +47,22 @@ void generateUsers() {
 }
 
 void generateTransactions() {
-    int t, u;
+    int t;
     std::cout << "Transaction count: ";
     std::cin >> t;
-    std::cout << "User count: ";
-    std::cin >> u;
 
-    // Reading users
+    // Read users
     std::vector<User> users;
     User temp;
     std::ifstream in ("users.txt");
-    for (int i = 0; i < u; i ++) {
-        in >> temp.name >> temp.publicKey >> temp.balance;
+    while (in >> temp.name) {
+        in >> temp.publicKey >> temp.balance;
         users.push_back(temp);
     }
     in.close();
 
     std::mt19937 mt(static_cast<long unsigned int>(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
-    std::uniform_int_distribution<int> randUser(0, u-1), 
-                                       randAmount(1, 1000000);
+    std::uniform_int_distribution<int> randUser(0, users.size()-1), randAmount(1, 1000000);
 
     User sender, receiver;
     double amount;
@@ -105,7 +102,88 @@ void generateTransactions() {
     std::cout << "\ntransactions.txt file has been generated";
 }
 
+std::vector<Transaction> getTransactions(int n, int round) {
+    std::vector<Transaction> trans;
+    Transaction temp;
+    std::ifstream in ("transactions.txt");
+    while (in >> temp.ID) {
+        in >> temp.senderKey >> temp.receiverKey >> temp.amount;
+        trans.push_back(temp);
+    }
+    in.close();
+
+    std::mt19937 mt(static_cast<long unsigned int>(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
+    std::uniform_int_distribution<int> randTrans(0, trans.size()-1);
+
+    std::vector<Transaction> selected;
+    std::vector<int> indexes;
+    int index;
+    int alreadyUsed;
+    for (int i = 0; i < n; i ++) {
+        do {
+            alreadyUsed = false;
+            index = randTrans(mt);
+            for (int j = 0; j < indexes.size(); j++) {
+                if (index == indexes[j]) {
+                    alreadyUsed = true;
+                    break;
+                }
+            }
+        } while (alreadyUsed);
+
+        indexes.push_back(index);
+        selected.push_back(trans[index]);
+    }
+
+    std::ostringstream name;
+    name << "transactions" << round << ".txt";
+    std::ofstream out (name.str());
+
+    for (int i = 0; i < trans.size(); i ++) {
+        alreadyUsed = false;
+        for (int j = 0; j < indexes.size(); j++) {
+                if (i == indexes[j]) {
+                    alreadyUsed = true;
+                    break;
+                }
+        }
+        if (!alreadyUsed)
+            out << trans[i].ID << " " << trans[i].senderKey << " "
+                << trans[i].receiverKey << " " << trans[i].amount << "\n";
+    }
+    out.close();
+    return selected;
+} 
+
+Block genesis(std::vector<Transaction> trans) {
+    int nonce = 0;
+    Block b("", trans);
+    while (!b.isNonceValid(nonce)) {
+        nonce++;
+    }
+    return b;
+}
+
+Block mine(Block previous, std::vector<Transaction> trans) {
+    int nonce = 0;
+    Block b(previous.HeaderHash(), trans);
+    while (!b.isNonceValid(nonce)) {
+        nonce++;
+    //std::cout << genesis.HeaderHash().substr(0,2) << " ";
+    }
+    return b;
+}
+
 int main() {
+    std::vector<Block> chain;
+    std::vector<Transaction> trans1 = getTransactions(100, 1);
+    chain.push_back(genesis(trans1));
+    
+    std::cout << chain[0].HeaderHash() << "\n";
+    std::vector<Transaction> trans2 = getTransactions(100, 2);
+    chain.push_back(mine(chain[0], trans2));
+    std::cout << chain[1].HeaderHash();
+    /*
     std::cout << "Enter the function number:\n"
               << "1 - User generation\n"
               << "2 - Transaction\n";
@@ -121,7 +199,21 @@ int main() {
             break;
         default:
             std::cout << "Invalid input";
+    }*/
+    /*
+    std::list<Transaction> genTrans;
+    Transaction genTrans1("abc", "zxc", 10);
+    Transaction genTrans2("abc", "zxc", 10);
+    genTrans.push_back(genTrans1);
+    genTrans.push_back(genTrans2);
+    int nonce = 0;
+    Block genesis("", genTrans);
+    while (!genesis.isNonceValid(nonce)) {
+        nonce++;
+        //std::cout << genesis.HeaderHash().substr(0,2) << " ";
     }
+    std::cout << genesis.HeaderHash();
+    */
 }
 
 // g++ -c blockchain.cpp hash.cpp

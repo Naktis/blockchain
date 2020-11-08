@@ -1,12 +1,11 @@
 #pragma once
 
 #include <chrono>
-#include <list>
 #include "transactions.hpp"
 
 class Block {
     public:
-        Block(std::string prevHash, std::list<Transaction> body) {
+        Block(std::string prevHash, std::vector<Transaction> body) {
             this->prevHash = prevHash;
             this->body = body;
             this->merkleRootHash = MerkleHash(body);
@@ -42,16 +41,16 @@ class Block {
         std::string merkleRootHash;
         int nonce;
         int difficulty = 1;
-        std::list<Transaction> body;
+        std::vector<Transaction> body;
 
         time_t CurrentTime() {
             auto now = std::chrono::system_clock::now();
             return std::chrono::system_clock::to_time_t(now);
         }
 
-        std::string MerkleHash(std::list<Transaction> t) {
+        std::string MerkleHash(std::vector<Transaction> t) {
             std::string allTrans = "";
-            for (std::list<Transaction>::const_iterator iterator = t.begin(), end = t.end(); iterator != end; ++iterator) {
+            for (std::vector<Transaction>::const_iterator iterator = t.begin(), end = t.end(); iterator != end; ++iterator) {
                 allTrans += (*iterator).ID;
             }
             return hash(allTrans);
