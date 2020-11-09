@@ -1,7 +1,6 @@
 #pragma once
 
-#include <chrono>
-#include "transactions.hpp"
+#include "iodata.hpp"
 
 class Block {
     public:
@@ -32,6 +31,10 @@ class Block {
             if (hash.substr(0, difficulty) == zeros)
                 return true;
             else return false;
+        }
+
+        int Nonce() {
+            return nonce;
         }
 
     private:

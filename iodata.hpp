@@ -1,5 +1,9 @@
 #pragma once
 
+#include <vector>
+#include <chrono>
+#include <random>
+#include <fstream>
 #include "hash.hpp"
 
 class User {
@@ -27,3 +31,7 @@ class Transaction {
         std::string receiverKey;
         double amount;
 };
+
+void generateUsers();
+void generateTransactions();
+std::vector<Transaction> getTransactions(int n);
