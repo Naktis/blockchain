@@ -28,7 +28,7 @@ class Block {
             this->timestamp = CurrentTime();
 
             std::string hash = HeaderHash();
-            std::string zeros(1, '0');
+            std::string zeros(difficulty, '0');
             if (hash.substr(0, difficulty) == zeros)
                 return true;
             else return false;
@@ -40,7 +40,7 @@ class Block {
         double version = 1;
         std::string merkleRootHash;
         int nonce;
-        int difficulty = 1;
+        int difficulty = 3;
         std::vector<Transaction> body;
 
         time_t CurrentTime() {

@@ -90,6 +90,7 @@ void generateTransactions() {
             }
         } else amount = sender.balance;
         
+        
         // Subtract the amount from the sender for further transactions
         users[senderIndex].balance -= amount;
 
@@ -99,6 +100,7 @@ void generateTransactions() {
         out << T.ID << " " << T.senderKey << " " << T.receiverKey << " " << T.amount << "\n";
     }
     out.close();
+
     std::cout << "\ntransactions.txt file has been generated\n";
 }
 
@@ -153,33 +155,28 @@ std::vector<Transaction> getTransactions(int n) {
     return selected;
 } 
 
-void executeTransactions() {
+void executeTransactions(std::vector<Transaction> trans) {
     std::vector<User> users;
-    User tempU;
-    std::ifstream inu ("users.txt");
-    while (inu >> tempU.name) {
-        inu >> tempU.publicKey >> tempU.balance;
-        users.push_back(tempU);
+    User temp;
+    std::ifstream in ("users.txt");
+    while (in >> temp.name) {
+        in >> temp.publicKey >> temp.balance;
+        users.push_back(temp);
     }
-    inu.close();
+    in.close();
 
-    Transaction tempT;
-    std::ifstream in ("transactions.txt");
-    while (in >> tempT.ID) {
-        in >> tempT.senderKey >> tempT.receiverKey >> tempT.amount;
-
+    for (int transIndex = 0; transIndex < trans.size(); transIndex ++) {
         int senderIndex = 0;
-        while(tempT.senderKey != users[senderIndex].publicKey)
+        while(trans[transIndex].senderKey != users[senderIndex].publicKey)
             senderIndex ++;
 
         int receiverIndex = 0;
-        while(tempT.receiverKey != users[receiverIndex].publicKey)
+        while(trans[transIndex].receiverKey != users[receiverIndex].publicKey)
             receiverIndex ++;
 
-        users[receiverIndex].balance += tempT.amount;
-        users[senderIndex].balance -= tempT.amount;
+        users[receiverIndex].balance += trans[transIndex].amount;
+        users[senderIndex].balance -= trans[transIndex].amount;
     }
-    in.close();
 
     std::ofstream out ("users.txt");
     for (int i = 0; i < users.size(); i ++) {
@@ -194,7 +191,7 @@ Block newBlock(std::vector<Transaction> trans) {
     while (!b.isNonceValid(nonce)) {
         nonce++;
     }
-    executeTransactions();
+    executeTransactions(trans);
     return b;
 }
 
@@ -204,7 +201,7 @@ Block newBlock(Block previous, std::vector<Transaction> trans) {
     while (!b.isNonceValid(nonce)) {
         nonce++;
     }
-    executeTransactions();
+    executeTransactions(trans);
     return b;
 }
 
