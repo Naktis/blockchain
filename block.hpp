@@ -7,7 +7,7 @@ class Block {
         Block(std::string prevHash, std::vector<Transaction> body) {
             this->prevHash = prevHash;
             this->body = body;
-            this->merkleRootHash = MerkleHash(body);
+            this->merkleRootHash = TransMerkleRoot(body);
         }
 
         std::string Timestamp() {
@@ -51,11 +51,31 @@ class Block {
             return std::chrono::system_clock::to_time_t(now);
         }
 
-        std::string MerkleHash(std::vector<Transaction> t) {
-            std::string allTrans = "";
-            for (std::vector<Transaction>::const_iterator iterator = t.begin(), end = t.end(); iterator != end; ++iterator) {
-                allTrans += (*iterator).ID;
+        std::string MerkleRoot(std::vector<std::string> incoming) {
+            if (incoming.size() != 1) {                 // continue until the root hash is left
+                std::vector<std::string> outcoming;
+
+                if (incoming.size() % 2 != 0)           // if the num of transactions is odd
+                    incoming.push_back(incoming.back());// add the duplicate of the last transaction
+
+                for (int i = 0; i < incoming.size(); i = i + 2)
+                    outcoming.push_back(hash(incoming[i] + incoming[i+1])); // hash pairs
+
+                return(MerkleRoot(outcoming));
+            } else {
+                return incoming.front();
             }
-            return hash(allTrans);
+        }
+
+        std::string TransMerkleRoot(std::vector<Transaction> t) {
+            if (t.empty())
+                return hash("");
+
+            // make a vector that holds all transactions' IDs
+            std::vector<std::string> allTransHashes;
+            for (int i = 0; i < t.size(); i++)
+                allTransHashes.push_back(t[i].ID);
+
+            return MerkleRoot(allTransHashes);
         }
 };
