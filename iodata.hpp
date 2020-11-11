@@ -21,7 +21,7 @@ class Transaction {
             this->receiverKey = receiverKey;
             this->amount = amount;
 
-            std::stringstream fieldValues;
+            std::ostringstream fieldValues;
             fieldValues << senderKey << receiverKey << amount;
             ID = hash(fieldValues.str());
         }
@@ -33,5 +33,10 @@ class Transaction {
 };
 
 void generateUsers();
+std::vector<User> getUsers();
 void generateTransactions();
-std::vector<Transaction> getTransactions(int n);
+int getUserIndexByKey(std::vector<User> &users, std::string key);
+bool verifyBalance(std::vector<User> &users, Transaction t);
+bool verifyTransHash(Transaction t);
+std::vector<Transaction> getTransactions();
+std::vector<Transaction> getNTransactions(int n);

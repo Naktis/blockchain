@@ -44,12 +44,7 @@ void generateUsers() {
     std::cout << "\nusers.txt file has been generated\n";
 }
 
-void generateTransactions() {
-    int t;
-    std::cout << "Transaction count: ";
-    std::cin >> t;
-
-    // Read users
+std::vector<User> getUsers() {
     std::vector<User> users;
     User temp;
     std::ifstream in ("users.txt");
@@ -58,6 +53,15 @@ void generateTransactions() {
         users.push_back(temp);
     }
     in.close();
+    return users;
+}
+
+void generateTransactions() {
+    int t;
+    std::cout << "Transaction count: ";
+    std::cin >> t;
+
+    std::vector<User> users = getUsers();
 
     std::mt19937 mt(static_cast<long unsigned int>(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
     std::uniform_int_distribution<int> randUser(0, users.size()-1), randAmount(1, 1000000);
@@ -102,7 +106,30 @@ void generateTransactions() {
     std::cout << "\ntransactions.txt file has been generated\n";
 }
 
-std::vector<Transaction> getTransactions(int n) {
+int getUserIndexByKey(std::vector<User> &users, std::string key) {
+    int index = 0;
+    while(key != users[index].publicKey)
+        index ++;
+    return index;
+}
+
+bool verifyBalance(std::vector<User> &users, Transaction t) {
+    int userIndex = getUserIndexByKey(users, t.senderKey);
+    if(users[userIndex].balance >= t.amount)
+        return true;
+    else return false;
+}
+
+bool verifyTransHash(Transaction t) {
+    std::ostringstream body;
+    body << t.senderKey << t.receiverKey << t.amount;
+    std::string bodyHash = hash(body.str());
+    if (bodyHash == t.ID)
+        return true;
+    else return false;
+}
+
+std::vector<Transaction> getTransactions() {
     std::vector<Transaction> trans;
     Transaction temp;
     std::ifstream in ("transactions.txt");
@@ -111,43 +138,53 @@ std::vector<Transaction> getTransactions(int n) {
         trans.push_back(temp);
     }
     in.close();
+    return trans;
+}
 
-    std::mt19937 mt(static_cast<long unsigned int>(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
-    std::uniform_int_distribution<int> randTrans(0, trans.size()-1);
+std::vector<Transaction> getNTransactions(int n) {
+    std::vector<Transaction> trans = getTransactions();
+    int initialTransSize = trans.size();
+    if (initialTransSize == 0)
+        return trans;
 
+    std::vector<User> users = getUsers();
     std::vector<Transaction> selected;
-    std::vector<int> indexes;
+    std::mt19937 mt(static_cast<long unsigned int>(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
+    std::uniform_int_distribution<int> randTrans(0, initialTransSize - 1);    // random transaction index
     int index;
-    int alreadyUsed;
+    bool skipIndex;
+
     for (int i = 0; i < n; i ++) {
         do {
-            alreadyUsed = false;
-            index = randTrans(mt);
-            for (int j = 0; j < indexes.size(); j++) {
-                if (index == indexes[j]) {
-                    alreadyUsed = true;
-                    break;
-                }
-            }
-        } while (alreadyUsed);
+            skipIndex = false;
 
-        indexes.push_back(index);
+            // get a random index of a transaction
+            index = randTrans(mt);
+            if (index > trans.size()-1) {
+                index = (trans.size() - 1) * index / (initialTransSize - 1);
+            }
+
+            // if the sender doesn't have enough money for the transaction or the transactions's 
+            // hash doesn't match its ID, erase the transaction and generate another index
+            if (!verifyBalance(users, trans[index]) || !verifyTransHash(trans[index])) {
+                trans.erase(trans.begin()+index);
+                skipIndex = true;
+            }
+        } while (skipIndex);
+
         selected.push_back(trans[index]);
+        trans.erase(trans.begin()+index);
+
+        if(trans.size() == 0) {
+            break;
+        }
     }
 
+    // print out all unused transactions
     std::ofstream out ("transactions.txt");
-
     for (int i = 0; i < trans.size(); i ++) {
-        alreadyUsed = false;
-        for (int j = 0; j < indexes.size(); j++) {
-                if (i == indexes[j]) {
-                    alreadyUsed = true;
-                    break;
-                }
-        }
-        if (!alreadyUsed)
-            out << trans[i].ID << " " << trans[i].senderKey << " "
-                << trans[i].receiverKey << " " << trans[i].amount << "\n";
+        out << trans[i].ID << " " << trans[i].senderKey << " "
+            << trans[i].receiverKey << " " << trans[i].amount << "\n";
     }
     out.close();
     return selected;
