@@ -12,49 +12,11 @@ void executeTransactions(std::vector<Transaction> trans) {
     }
 }
 
-Block newBlock(std::vector<Transaction> &trans, int maxNonce) {
-    int nonce = 0;
-    Block b("", trans);
-    while (!b.isNonceValid(nonce) && nonce != maxNonce)
-        nonce++;
-    executeTransactions(trans);
-    removeTransactions(trans);
-    return b;
-}
-
-Block newBlock(Block previous, std::vector<Transaction> &trans, int maxNonce) {
-    int nonce = 0;
-    Block b(previous.HeaderHash(), trans);
-    while (!b.isNonceValid(nonce) && nonce != maxNonce)
-        nonce++;
-    executeTransactions(trans);
-    return b;
-}
-
 int searchForNonce(Block &b, int maxNonce) {
     int nonce = 0;
     while (!b.isNonceValid(nonce) && nonce != maxNonce)
         nonce++;
     return nonce;
-}
-
-Block newBlock(std::vector<Transaction> &trans) {
-    int nonce = 0;
-    Block b("", trans);
-    while (!b.isNonceValid(nonce))
-        nonce++;
-    executeTransactions(trans);
-    removeTransactions(trans);
-    return b;
-}
-
-Block newBlock(Block previous, std::vector<Transaction> &trans) {
-    int nonce = 0;
-    Block b(previous.HeaderHash(), trans);
-    while (!b.isNonceValid(nonce))
-        nonce++;
-    executeTransactions(trans);
-    return b;
 }
 
 Block mineBlock(int blockCount, int transCount, std::string previousHeader) {
@@ -124,9 +86,9 @@ void createWholeChain() {
     // genesis block
     chain.push_back(mineBlock(blockCount, transCount, ""));
 
-    for (int i = 1; i < chainLength; i ++) {
+    // other blocks
+    for (int i = 1; i < chainLength; i ++)
         chain.push_back(mineBlock(blockCount, transCount, chain[i-1].HeaderHash()));
-    }
 
     printChain(chain);
 }
