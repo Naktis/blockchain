@@ -10,24 +10,45 @@ void executeTransactions(std::vector<Transaction> trans) {
         users[receiverIndex].balance += trans[transIndex].amount;
         users[senderIndex].balance -= trans[transIndex].amount;
     }
-
-    std::ofstream out ("users.txt");
-    for (int i = 0; i < users.size(); i ++) {
-        out << users[i].name << " " << users[i].publicKey << " " << users[i].balance << "\n";
-    }
-    out.close();
 }
 
-Block newBlock(std::vector<Transaction> trans) {
+Block newBlock(std::vector<Transaction> &trans, int maxNonce) {
     int nonce = 0;
     Block b("", trans);
-    while (!b.isNonceValid(nonce))
+    while (!b.isNonceValid(nonce) && nonce != maxNonce)
+        nonce++;
+    executeTransactions(trans);
+    removeTransactions(trans);
+    return b;
+}
+
+Block newBlock(Block previous, std::vector<Transaction> &trans, int maxNonce) {
+    int nonce = 0;
+    Block b(previous.HeaderHash(), trans);
+    while (!b.isNonceValid(nonce) && nonce != maxNonce)
         nonce++;
     executeTransactions(trans);
     return b;
 }
 
-Block newBlock(Block previous, std::vector<Transaction> trans) {
+int searchForNonce(Block &b, int maxNonce) {
+    int nonce = 0;
+    while (!b.isNonceValid(nonce) && nonce != maxNonce)
+        nonce++;
+    return nonce;
+}
+
+Block newBlock(std::vector<Transaction> &trans) {
+    int nonce = 0;
+    Block b("", trans);
+    while (!b.isNonceValid(nonce))
+        nonce++;
+    executeTransactions(trans);
+    removeTransactions(trans);
+    return b;
+}
+
+Block newBlock(Block previous, std::vector<Transaction> &trans) {
     int nonce = 0;
     Block b(previous.HeaderHash(), trans);
     while (!b.isNonceValid(nonce))
@@ -36,32 +57,76 @@ Block newBlock(Block previous, std::vector<Transaction> trans) {
     return b;
 }
 
-void createWholeChain() {
-    int blockCount, transCount;
-    std::cout << "Block count: ";
-    std::cin >> blockCount;
-    std::cout << "Transactions in a block count: ";
-    std::cin >> transCount;
+Block mineBlock(int blockCount, int transCount, std::string previousHeader) {
+    std::vector<Block> candidatesOriginal;
 
-    std::vector<Block> chain;
+    for (int i = 0; i < blockCount; i ++) {
+        Block temp(previousHeader, getNTransactions(transCount));
+        candidatesOriginal.push_back(temp);
+    }
+
+    std::mt19937 mt(static_cast<long unsigned int>(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
+    std::uniform_int_distribution<int> randBlock(0, blockCount-1);
+
+    bool wasNonceFound = false;
+    int maxNonce = 0;
+    int candIndex, winnerIndex = -1;
+    std::vector<Block> candidates;
+    do {
+        maxNonce += 5000;
+        // recover the list of candidates
+        candidates = candidatesOriginal;
+
+        // try searching for nonces with each candidate
+        while (candidates.size() != 0) {
+            // get random candidate index
+            candIndex = randBlock(mt);
+            if (candIndex > (candidates.size() - 1)) {
+                candIndex = (candidates.size() - 1) * candIndex / (blockCount - 1);
+            }
+
+            if (searchForNonce(candidates[candIndex], maxNonce) != maxNonce) {
+                winnerIndex = candIndex;
+                break;
+            } else {
+                candidates.erase(candidates.begin()+candIndex);
+            }
+        }
+        // if mining all candidates failed, try again with increased nonce limit
+    } while (winnerIndex == -1);
+
+    executeTransactions(candidates[winnerIndex].Body());
+    
+    return candidates[winnerIndex];
+}
+
+void printChain(std::vector<Block> &chain) {
     std::ofstream out ("block_hashes.txt");
-
-    // genesis block
-    std::vector<Transaction> body = getNTransactions(transCount);
-    chain.push_back(newBlock(body));
-    out << chain[0].HeaderHash() 
-        << " Time: " << chain[0].Timestamp()
-        << " Nonce: " << chain[0].Nonce()<< "\n";
-
-    // other blocks
-    for (int i = 1; i < blockCount; i ++) {
-        body = getNTransactions(transCount);
-        chain.push_back(newBlock(chain[i-1], body));
+    for (int i = 0; i < chain.size(); i ++) {
         out << chain[i].HeaderHash() 
             << " Time: " << chain[i].Timestamp()
             << " Nonce: " << chain[i].Nonce() << "\n";
     }
     out.close();
+}
 
-    std::cout << "\nBlocks' hashes have been saved to block_hashes.txt\n\n";
+void createWholeChain() {
+    int blockCount, transCount, maxNonce, chainLength;
+    std::cout << "Blocks to add to the chain: ";
+    std::cin >> chainLength;
+    std::cout << "Blocks to compete against each other: ";
+    std::cin >> blockCount;
+    std::cout << "Transactions in a block: ";
+    std::cin >> transCount;
+
+    std::vector<Block> chain;
+
+    // genesis block
+    chain.push_back(mineBlock(blockCount, transCount, ""));
+
+    for (int i = 1; i < chainLength; i ++) {
+        chain.push_back(mineBlock(blockCount, transCount, chain[i-1].HeaderHash()));
+    }
+
+    printChain(chain);
 }

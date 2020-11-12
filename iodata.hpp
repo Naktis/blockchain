@@ -4,6 +4,7 @@
 #include <chrono>
 #include <random>
 #include <fstream>
+#include <algorithm>
 #include "hash.hpp"
 
 class User {
@@ -15,6 +16,11 @@ class User {
 
 class Transaction {
     public:
+        std::string ID; // hash of other field values
+        std::string senderKey;
+        std::string receiverKey;
+        double amount;
+        
         Transaction() {}
         Transaction(std::string senderKey, std::string receiverKey, double amount) {
             this->senderKey = senderKey;
@@ -25,11 +31,7 @@ class Transaction {
             fieldValues << senderKey << receiverKey << amount;
             ID = hash(fieldValues.str());
         }
-
-        std::string ID; // hash of other field values
-        std::string senderKey;
-        std::string receiverKey;
-        double amount;
+        inline bool operator==(const Transaction& another){ return this->ID == another.ID;}
 };
 
 void generateUsers();
@@ -40,3 +42,4 @@ bool verifyBalance(std::vector<User> &users, Transaction t);
 bool verifyTransHash(Transaction t);
 std::vector<Transaction> getTransactions();
 std::vector<Transaction> getNTransactions(int n);
+void removeTransactions(std::vector<Transaction> &used);

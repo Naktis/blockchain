@@ -33,9 +33,8 @@ class Block {
             else return false;
         }
 
-        int Nonce() {
-            return nonce;
-        }
+        int Nonce() { return nonce; }
+        std::vector<Transaction> Body() { return body; }
 
     private:
         std::string prevHash;

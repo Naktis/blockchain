@@ -92,7 +92,6 @@ void generateTransactions() {
             }
         } else amount = sender.balance;
         
-        
         // Subtract the amount from the sender for further transactions
         users[senderIndex].balance -= amount;
 
@@ -115,9 +114,12 @@ int getUserIndexByKey(std::vector<User> &users, std::string key) {
 
 bool verifyBalance(std::vector<User> &users, Transaction t) {
     int userIndex = getUserIndexByKey(users, t.senderKey);
-    if(users[userIndex].balance >= t.amount)
+    if(users[userIndex].balance >= t.amount) {
+        users[userIndex].balance -= t.amount;
         return true;
-    else return false;
+    } else {
+        return false;
+    }
 }
 
 bool verifyTransHash(Transaction t) {
@@ -179,13 +181,22 @@ std::vector<Transaction> getNTransactions(int n) {
             break;
         }
     }
-
-    // print out all unused transactions
-    std::ofstream out ("transactions.txt");
-    for (int i = 0; i < trans.size(); i ++) {
-        out << trans[i].ID << " " << trans[i].senderKey << " "
-            << trans[i].receiverKey << " " << trans[i].amount << "\n";
-    }
-    out.close();
     return selected;
 } 
+
+void removeTransactions(std::vector<Transaction> &used) {
+    std::vector<Transaction> all = getTransactions();
+
+    for (int i = 0; i < used.size(); i ++) {
+        auto position = std::find(all.begin(), all.end(), used[i]);
+        if (position != all.end()) // if the element was found
+            all.erase(position);
+    }
+
+    std::ofstream out ("transactions.txt");
+    for (int i = 0; i < all.size(); i ++) {
+        out << all[i].ID << " " << all[i].senderKey << " "
+            << all[i].receiverKey << " " << all[i].amount << "\n";
+    }
+    out.close();
+}
