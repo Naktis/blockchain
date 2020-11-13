@@ -20,7 +20,7 @@ class Transaction {
         std::string senderKey;
         std::string receiverKey;
         double amount;
-        
+
         Transaction() {}
         Transaction(std::string senderKey, std::string receiverKey, double amount) {
             this->senderKey = senderKey;
@@ -36,10 +36,12 @@ class Transaction {
 
 void generateUsers();
 std::vector<User> getUsers();
-void generateTransactions();
+void printUsers(std::vector<User> &users);
 int getUserIndexByKey(std::vector<User> &users, std::string key);
 bool verifyBalance(std::vector<User> &users, Transaction t);
-bool verifyTransHash(Transaction t);
+
+void generateTransactions();
 std::vector<Transaction> getTransactions();
 std::vector<Transaction> getNTransactions(int n);
 void removeTransactions(std::vector<Transaction> &used);
+bool verifyTransHash(Transaction t);

@@ -7,7 +7,7 @@ class Block {
         Block(std::string prevHash, std::vector<Transaction> body) {
             this->prevHash = prevHash;
             this->body = body;
-            this->merkleRootHash = TransMerkleRoot(body);
+            this->merkleRootHash = transMerkleRoot(body);
         }
 
         std::string Timestamp() {
@@ -24,7 +24,7 @@ class Block {
 
         bool isNonceValid(int nonce) {
             this->nonce = nonce;
-            this->timestamp = CurrentTime();
+            this->timestamp = currentTime();
 
             std::string hash = HeaderHash();
             std::string zeros(difficulty, '0');
@@ -45,12 +45,12 @@ class Block {
         int difficulty = 3;
         std::vector<Transaction> body;
 
-        time_t CurrentTime() {
+        time_t currentTime() {
             auto now = std::chrono::system_clock::now();
             return std::chrono::system_clock::to_time_t(now);
         }
 
-        std::string MerkleRoot(std::vector<std::string> incoming) {
+        std::string merkleRoot(std::vector<std::string> incoming) {
             if (incoming.size() != 1) {                 // continue until the root hash is left
                 std::vector<std::string> outcoming;
 
@@ -60,13 +60,13 @@ class Block {
                 for (int i = 0; i < incoming.size(); i = i + 2)
                     outcoming.push_back(hash(incoming[i] + incoming[i+1])); // hash pairs
 
-                return(MerkleRoot(outcoming));
+                return(merkleRoot(outcoming));
             } else {
                 return incoming.front();
             }
         }
 
-        std::string TransMerkleRoot(std::vector<Transaction> t) {
+        std::string transMerkleRoot(std::vector<Transaction> t) {
             if (t.empty())
                 return hash("");
 
@@ -75,6 +75,6 @@ class Block {
             for (int i = 0; i < t.size(); i++)
                 allTransHashes.push_back(t[i].ID);
 
-            return MerkleRoot(allTransHashes);
+            return merkleRoot(allTransHashes);
         }
 };

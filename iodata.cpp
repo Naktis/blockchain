@@ -25,7 +25,7 @@ void generateUsers() {
         length = randLength(mt);
         isOdd = randOddEven(mt);
         
-        // Name generation
+        // name generation
         for (int j = 0; j < length; j ++) {
             if (isOdd)
                 name += consonents[randConsonent(mt)];
@@ -33,7 +33,7 @@ void generateUsers() {
             isOdd = !isOdd;
         }
 
-        // Seed for primary key
+        // seed for primary key
         sstream.str("");
         sstream.clear();
         sstream << name << i;
@@ -56,53 +56,12 @@ std::vector<User> getUsers() {
     return users;
 }
 
-void generateTransactions() {
-    int t;
-    std::cout << "Transaction count: ";
-    std::cin >> t;
-
-    std::vector<User> users = getUsers();
-
-    std::mt19937 mt(static_cast<long unsigned int>(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
-    std::uniform_int_distribution<int> randUser(0, users.size()-1), randAmount(1, 1000000);
-
-    User sender, receiver;
-    double amount;
-    int senderIndex;
-    std::ofstream out ("transactions.txt");
-    for (int i = 0; i < t; i ++) {
-        // Get a random seeder that has >= 0.01 balance
-        do {
-            senderIndex = randUser(mt);
-            sender = users[senderIndex];
-        } while (sender.balance < 0.01);
-
-        // Find a random receiver that isn't the same person
-        do {
-            receiver = users[randUser(mt)];
-        } while (sender.publicKey == receiver.publicKey);
-
-        // Set a random amount of money
-        if (sender.balance > 1) {
-            amount = randAmount(mt);
-            if (amount > sender.balance) {
-                amount = sender.balance * amount / 1000000.0;
-                if (amount < 1)
-                    amount = 1;
-            }
-        } else amount = sender.balance;
-        
-        // Subtract the amount from the sender for further transactions
-        users[senderIndex].balance -= amount;
-
-        // Generate transaction key
-        Transaction T(sender.publicKey, receiver.publicKey, amount);
-
-        out << T.ID << " " << T.senderKey << " " << T.receiverKey << " " << T.amount << "\n";
+void printUsers(std::vector<User> &users) {
+    std::ofstream out ("users.txt");
+    for (int i = 0; i < users.size(); i ++) {
+        out << users[i].name << " " << users[i].publicKey << " " << users[i].balance << "\n";
     }
     out.close();
-
-    std::cout << "\ntransactions.txt file has been generated\n";
 }
 
 int getUserIndexByKey(std::vector<User> &users, std::string key) {
@@ -122,13 +81,53 @@ bool verifyBalance(std::vector<User> &users, Transaction t) {
     }
 }
 
-bool verifyTransHash(Transaction t) {
-    std::ostringstream body;
-    body << t.senderKey << t.receiverKey << t.amount;
-    std::string bodyHash = hash(body.str());
-    if (bodyHash == t.ID)
-        return true;
-    else return false;
+void generateTransactions() {
+    int t;
+    std::cout << "Transaction count: ";
+    std::cin >> t;
+
+    std::vector<User> users = getUsers();
+
+    std::mt19937 mt(static_cast<long unsigned int>(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
+    std::uniform_int_distribution<int> randUser(0, users.size()-1), randAmount(1, 1000000);
+
+    User sender, receiver;
+    double amount;
+    int senderIndex;
+    std::ofstream out ("transactions.txt");
+    for (int i = 0; i < t; i ++) {
+        // get a random seeder that has >= 0.01 balance
+        do {
+            senderIndex = randUser(mt);
+            sender = users[senderIndex];
+        } while (sender.balance < 0.01);
+
+        // find a random receiver that isn't the same person
+        do {
+            receiver = users[randUser(mt)];
+        } while (sender.publicKey == receiver.publicKey);
+
+        // set a random amount of money
+        if (sender.balance > 1) {
+            amount = randAmount(mt);
+            if (amount > sender.balance) {
+                amount = sender.balance * amount / 1000000.0;
+                if (amount < 1)
+                    amount = 1;
+            }
+        } else amount = sender.balance;
+        
+        // subtract the amount from the sender for further transactions
+        users[senderIndex].balance -= amount;
+
+        // generate transaction key
+        Transaction T(sender.publicKey, receiver.publicKey, amount);
+
+        out << T.ID << " " << T.senderKey << " " << T.receiverKey << " " << T.amount << "\n";
+    }
+    out.close();
+
+    std::cout << "\ntransactions.txt file has been generated\n";
 }
 
 std::vector<Transaction> getTransactions() {
@@ -144,7 +143,10 @@ std::vector<Transaction> getTransactions() {
 }
 
 std::vector<Transaction> getNTransactions(int n) {
+    // read all transactions
     std::vector<Transaction> trans = getTransactions();
+
+    // empty file protection
     int initialTransSize = trans.size();
     if (initialTransSize == 0)
         return trans;
@@ -175,9 +177,9 @@ std::vector<Transaction> getNTransactions(int n) {
         } while (skipIndex);
 
         selected.push_back(trans[index]);
-        trans.erase(trans.begin()+index);
-
-        if(trans.size() == 0) {
+        trans.erase(trans.begin()+index);   // make the transaction no longer valid
+    
+        if(trans.size() == 0) {             // stop the loop if there are no transactions left
             break;
         }
     }
@@ -199,4 +201,13 @@ void removeTransactions(std::vector<Transaction> &used) {
             << all[i].receiverKey << " " << all[i].amount << "\n";
     }
     out.close();
+}
+
+bool verifyTransHash(Transaction t) {
+    std::ostringstream body;
+    body << t.senderKey << t.receiverKey << t.amount;
+    std::string bodyHash = hash(body.str());
+    if (bodyHash == t.ID)
+        return true;
+    else return false;
 }
