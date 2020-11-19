@@ -1,4 +1,4 @@
-#include "iodata.hpp"
+#include "../headers/iodata.hpp"
 
 void generateUsers() {
     int n;
@@ -12,21 +12,21 @@ void generateUsers() {
                                        randOddEven(0, 1), 
                                        randBalance(100, 1000000);
 
-    char consonents[] = {'b','c','d','f','g','h','j','k','l','m','n','p','q','r','s','t','v','w','x','z'};
-    char vowels[] = {'a','e','i','o','u','y'};
+    char consonents[] = { 'b','c','d','f','g','h','j','k','l','m','n','p','q','r','s','t','v','w','x','z' };
+    char vowels[] = { 'a','e','i','o','u','y' };
 
-    std::ofstream out ("users.txt");
+    std::ofstream out("users.txt");
     std::string name;
     int length;
     bool isOdd;
     std::ostringstream sstream;
-    for (int i = 0; i < n; i ++) {
+    for (int i = 0; i < n; i++) {
         name = "";
         length = randLength(mt);
         isOdd = randOddEven(mt);
-        
+
         // name generation
-        for (int j = 0; j < length; j ++) {
+        for (int j = 0; j < length; j++) {
             if (isOdd)
                 name += consonents[randConsonent(mt)];
             else name += vowels[randVowel(mt)];
@@ -47,7 +47,7 @@ void generateUsers() {
 std::vector<User> getUsers() {
     std::vector<User> users;
     User temp;
-    std::ifstream in ("users.txt");
+    std::ifstream in("users.txt");
     while (in >> temp.name) {
         in >> temp.publicKey >> temp.balance;
         users.push_back(temp);
@@ -56,27 +56,28 @@ std::vector<User> getUsers() {
     return users;
 }
 
-void printUsers(std::vector<User> &users) {
-    std::ofstream out ("users.txt");
-    for (int i = 0; i < users.size(); i ++) {
+void printUsers(std::vector<User>& users) {
+    std::ofstream out("users.txt");
+    for (int i = 0; i < users.size(); i++) {
         out << users[i].name << " " << users[i].publicKey << " " << users[i].balance << "\n";
     }
     out.close();
 }
 
-int getUserIndexByKey(std::vector<User> &users, std::string key) {
+int getUserIndexByKey(std::vector<User>& users, std::string key) {
     int index = 0;
-    while(key != users[index].publicKey)
-        index ++;
+    while (key != users[index].publicKey)
+        index++;
     return index;
 }
 
-bool verifyBalance(std::vector<User> &users, Transaction t) {
+bool verifyBalance(std::vector<User>& users, Transaction t) {
     int userIndex = getUserIndexByKey(users, t.senderKey);
-    if(users[userIndex].balance >= t.amount) {
+    if (users[userIndex].balance >= t.amount) {
         users[userIndex].balance -= t.amount;
         return true;
-    } else {
+    }
+    else {
         return false;
     }
 }
@@ -89,13 +90,13 @@ void generateTransactions() {
     std::vector<User> users = getUsers();
 
     std::mt19937 mt(static_cast<long unsigned int>(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
-    std::uniform_int_distribution<int> randUser(0, users.size()-1), randAmount(1, 1000000);
+    std::uniform_int_distribution<int> randUser(0, users.size() - 1), randAmount(1, 1000000);
 
     User sender, receiver;
     double amount;
     int senderIndex;
-    std::ofstream out ("transactions.txt");
-    for (int i = 0; i < t; i ++) {
+    std::ofstream out("transactions.txt");
+    for (int i = 0; i < t; i++) {
         // get a random seeder that has >= 0.01 balance
         do {
             senderIndex = randUser(mt);
@@ -115,8 +116,9 @@ void generateTransactions() {
                 if (amount < 1)
                     amount = 1;
             }
-        } else amount = sender.balance;
-        
+        }
+        else amount = sender.balance;
+
         // subtract the amount from the sender for further transactions
         users[senderIndex].balance -= amount;
 
@@ -133,7 +135,7 @@ void generateTransactions() {
 std::vector<Transaction> getTransactions() {
     std::vector<Transaction> trans;
     Transaction temp;
-    std::ifstream in ("transactions.txt");
+    std::ifstream in("transactions.txt");
     while (in >> temp.ID) {
         in >> temp.senderKey >> temp.receiverKey >> temp.amount;
         trans.push_back(temp);
@@ -158,45 +160,45 @@ std::vector<Transaction> getNTransactions(int n) {
     int index;
     bool skipIndex;
 
-    for (int i = 0; i < n; i ++) {
+    for (int i = 0; i < n; i++) {
         do {
             skipIndex = false;
 
             // get a random index of a transaction
             index = randTrans(mt);
-            if (index > trans.size()-1) {
+            if (index > trans.size() - 1) {
                 index = (trans.size() - 1) * index / (initialTransSize - 1);
             }
 
             // if the sender doesn't have enough money for the transaction or the transactions's 
             // hash doesn't match its ID, erase the transaction and generate another index
             if (!verifyBalance(users, trans[index]) || !verifyTransHash(trans[index])) {
-                trans.erase(trans.begin()+index);
+                trans.erase(trans.begin() + index);
                 skipIndex = true;
             }
         } while (skipIndex);
 
         selected.push_back(trans[index]);
-        trans.erase(trans.begin()+index);   // make the transaction no longer valid
-    
-        if(trans.size() == 0) {             // stop the loop if there are no transactions left
+        trans.erase(trans.begin() + index);   // make the transaction no longer valid
+
+        if (trans.size() == 0) {             // stop the loop if there are no transactions left
             break;
         }
     }
     return selected;
-} 
+}
 
-void removeTransactions(std::vector<Transaction> &used) {
+void removeTransactions(std::vector<Transaction>& used) {
     std::vector<Transaction> all = getTransactions();
 
-    for (int i = 0; i < used.size(); i ++) {
+    for (int i = 0; i < used.size(); i++) {
         auto position = std::find(all.begin(), all.end(), used[i]);
         if (position != all.end()) // if the element was found
             all.erase(position);
     }
 
-    std::ofstream out ("transactions.txt");
-    for (int i = 0; i < all.size(); i ++) {
+    std::ofstream out("transactions.txt");
+    for (int i = 0; i < all.size(); i++) {
         out << all[i].ID << " " << all[i].senderKey << " "
             << all[i].receiverKey << " " << all[i].amount << "\n";
     }

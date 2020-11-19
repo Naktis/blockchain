@@ -1,7 +1,7 @@
-#include "blockchain.hpp"
+#include "../headers/blockchain.hpp"
 
-void executeTransactions(std::vector<Transaction> trans, std::vector<User> &users) {
-    for (int transIndex = 0; transIndex < trans.size(); transIndex ++) {
+void executeTransactions(std::vector<Transaction> trans, std::vector<User>& users) {
+    for (int transIndex = 0; transIndex < trans.size(); transIndex++) {
         int senderIndex = getUserIndexByKey(users, trans[transIndex].senderKey);
         int receiverIndex = getUserIndexByKey(users, trans[transIndex].receiverKey);
 
@@ -12,23 +12,23 @@ void executeTransactions(std::vector<Transaction> trans, std::vector<User> &user
     printUsers(users);
 }
 
-int searchForNonce(Block &b, int maxNonce) {
+int searchForNonce(Block& b, int maxNonce) {
     int nonce = 0;
     while (!b.isNonceValid(nonce) && nonce != maxNonce)
         nonce++;
     return nonce;
 }
 
-Block mineBlock(int blockCount, int transCount, std::string previousHeader, std::vector<User> &users) {
+Block mineBlock(int blockCount, int transCount, std::string previousHeader, std::vector<User>& users) {
     // generate mining candidates with random transactions
     std::vector<Block> candidatesOriginal;
-    for (int i = 0; i < blockCount; i ++) {
+    for (int i = 0; i < blockCount; i++) {
         Block temp(previousHeader, getNTransactions(transCount));
         candidatesOriginal.push_back(temp);
     }
 
     std::mt19937 mt(static_cast<long unsigned int>(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
-    std::uniform_int_distribution<int> randBlock(0, blockCount-1);
+    std::uniform_int_distribution<int> randBlock(0, blockCount - 1);
     bool wasNonceFound = false;
     int maxNonce = 0;
     int candIndex, winnerIndex = -1;
@@ -50,15 +50,16 @@ Block mineBlock(int blockCount, int transCount, std::string previousHeader, std:
             if (searchForNonce(candidates[candIndex], maxNonce) != maxNonce) {
                 winnerIndex = candIndex;
                 break;
-            } else {
-                candidates.erase(candidates.begin()+candIndex);
+            }
+            else {
+                candidates.erase(candidates.begin() + candIndex);
             }
         }
         // if mining all candidates failed, try again with increased nonce limit
     } while (winnerIndex == -1);
 
     executeTransactions(candidates[winnerIndex].Body(), users);
-    
+
     return candidates[winnerIndex];
 }
 
@@ -74,18 +75,18 @@ void createWholeChain() {
     std::vector<Block> chain;
     std::vector<User> users = getUsers();
 
-    std::ofstream out ("block_hashes.txt");
+    std::ofstream out("block_hashes.txt");
 
     // genesis block
     chain.push_back(mineBlock(blockCount, transCount, "", users));
-    out << chain[0].HeaderHash() 
+    out << chain[0].HeaderHash()
         << " Time: " << chain[0].Timestamp()
         << " Nonce: " << chain[0].Nonce() << "\n";
 
     // other blocks
-    for (int i = 1; i < chainLength; i ++) {
-        chain.push_back(mineBlock(blockCount, transCount, chain[i-1].HeaderHash(), users));
-        out << chain[i].HeaderHash() 
+    for (int i = 1; i < chainLength; i++) {
+        chain.push_back(mineBlock(blockCount, transCount, chain[i - 1].HeaderHash(), users));
+        out << chain[i].HeaderHash()
             << " Time: " << chain[i].Timestamp()
             << " Nonce: " << chain[i].Nonce() << "\n";
     }

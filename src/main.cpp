@@ -1,4 +1,4 @@
-#include "blockchain.hpp"
+#include "../headers/blockchain.hpp"
 
 int main() {
     int fun;
