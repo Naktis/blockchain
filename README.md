@@ -1,7 +1,7 @@
 
 # Blockchain
 
-Simplified blockchain which uses self made [hash function](https://github.com/Naktis/hash-generator) and does mining magic, written in C++.
+Simplified blockchain which uses self made [hash function](https://github.com/Naktis/hash-generator) and mines blocks of transactions, written in C++
 
 Features:
 - User and transaction generation
@@ -30,3 +30,17 @@ Features:
 5. Run the program with: `./main` (unix) or `main` (windows)
 
 6. Read the given function list and choose one by typing its number
+
+
+## Versions
+
+### v0.2
+- Created Merkle Root hash
+- Added balance and transaction hash verification
+- Made blocks of transactions compete with each other
+
+### v0.1
+- Created the first draft of the simplified blockchain
+- Added user and transaction generation functions
+- Implemented block mining and transaction execution
+- Used both in-memory and in-file data storage
