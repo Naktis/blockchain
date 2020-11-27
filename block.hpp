@@ -1,6 +1,7 @@
 #pragma once
 
 #include "iodata.hpp"
+#include "merkle.hpp"
 
 class Block {
     public:
@@ -8,6 +9,12 @@ class Block {
             this->prevHash = prevHash;
             this->body = body;
             this->merkleRootHash = transMerkleRoot(body);
+            
+            bc::hash_list newMerkleList = convertToHashList(body);
+            bc::hash_digest newMerkle = create_merkle(newMerkleList);
+            
+            std::cout << "Original: " << merkleRootHash;
+            std::cout << "\nNew: " << bc::encode_base16(newMerkle) << "\n";
         }
 
         std::string Timestamp() {
@@ -76,5 +83,17 @@ class Block {
                 allTransHashes.push_back(t[i].ID);
 
             return merkleRoot(allTransHashes);
+        }
+
+        bc::hash_list convertToHashList(std::vector<Transaction> t) {
+            bc::hash_list transList;
+
+            char idAsCharList[65];
+            for (int i = 0; i < t.size(); i++) {
+                std::strcpy(idAsCharList, t[i].ID.c_str());
+                transList.push_back(bc::hash_literal(idAsCharList));
+            }
+
+            return transList;
         }
 };
