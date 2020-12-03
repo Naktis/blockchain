@@ -1,13 +1,16 @@
 #pragma once
 
 #include "iodata.hpp"
+#include "merkle.hpp"
 
 class Block {
     public:
         Block(std::string prevHash, std::vector<Transaction> body) {
             this->prevHash = prevHash;
             this->body = body;
-            this->merkleRootHash = transMerkleRoot(body);
+            
+            bc::hash_list idList = convertToHashList(body);
+            this->merkleRootHash = create_merkle(idList);
         }
 
         std::string Timestamp() {
@@ -18,7 +21,8 @@ class Block {
 
         std::string HeaderHash() {
             std::ostringstream sstream;
-            sstream << prevHash << timestamp << version << merkleRootHash << nonce << difficulty;
+            sstream << prevHash << timestamp << version 
+                    << bc::encode_base16(merkleRootHash) << nonce << difficulty;
             return hash(sstream.str());
         }
 
@@ -40,7 +44,7 @@ class Block {
         std::string prevHash;
         time_t timestamp;
         double version = 1;
-        std::string merkleRootHash;
+        bc::hash_digest merkleRootHash;
         int nonce;
         int difficulty = 3;
         std::vector<Transaction> body;
@@ -50,31 +54,22 @@ class Block {
             return std::chrono::system_clock::to_time_t(now);
         }
 
-        std::string merkleRoot(std::vector<std::string> incoming) {
-            if (incoming.size() != 1) {                 // continue until the root hash is left
-                std::vector<std::string> outcoming;
+        bc::hash_list convertToHashList(std::vector<Transaction> transVector) {
+            bc::hash_list transIDList;
+            char idAsCharList[65];
 
-                if (incoming.size() % 2 != 0)           // if the num of transactions is odd
-                    incoming.push_back(incoming.back());// add the duplicate of the last transaction
-
-                for (int i = 0; i < incoming.size(); i = i + 2)
-                    outcoming.push_back(hash(incoming[i] + incoming[i+1])); // hash pairs
-
-                return(merkleRoot(outcoming));
-            } else {
-                return incoming.front();
+            if (transVector.empty()) {
+                transIDList.push_back(bc::hash_literal(idAsCharList));
+                return transIDList;
             }
-        }
 
-        std::string transMerkleRoot(std::vector<Transaction> t) {
-            if (t.empty())
-                return hash("");
+            for (int i = 0; i < transVector.size(); i++) {
+                // convert the transaction's ID string to the character list
+                std::strcpy(idAsCharList, transVector[i].ID.c_str());
+                // add the converted ID to the hash list
+                transIDList.push_back(bc::hash_literal(idAsCharList));
+            }
 
-            // make a vector that holds all transactions' IDs
-            std::vector<std::string> allTransHashes;
-            for (int i = 0; i < t.size(); i++)
-                allTransHashes.push_back(t[i].ID);
-
-            return merkleRoot(allTransHashes);
+            return transIDList;
         }
 };

@@ -1,11 +1,6 @@
-main: hash.o iodata.o blockchain.o
-	g++ -c main.cpp
-	g++ -o main main.o blockchain.o iodata.o hash.o
-blockchain:
-	g++ -c blockchain.cpp
-iodata:
-	g++ -c iodata.cpp
-hash:
-	g++ -c hash.cpp
-clean:
+main:
+	g++ -std=c++11 -o main merkle.cpp hash.cpp iodata.cpp blockchain.cpp main.cpp $$(pkg-config --cflags --libs libbitcoin)
+clean-win:
 	del *.o *.exe
+clean-unix:
+	rm *.o main
